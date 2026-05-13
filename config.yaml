@@ -1,0 +1,75 @@
+# GalaxEye Change Detection - V1 (submitted) training config
+# All hyperparameters used to produce best_model.pth
+
+# Paths (edit to match your environment)
+data_root: /mnt/6tbdisk/mimanshi/galaxeye_data
+checkpoint_dir: /mnt/6tbdisk/mimanshi/galaxeye_checkpoints
+
+# Data
+image_size: 1024            # native resolution of input TIFFs
+train_crop_size: 512        # random crop applied at training
+val_crop_size: 1024         # no crop at val/test
+in_channels: 4              # 3 EO + 1 SAR concatenated
+num_classes: 1              # binary segmentation, single logit head
+
+# Label remap (mandatory, per assignment)
+label_remap:
+  0: 0   # background -> no-change
+  1: 0   # intact -> no-change
+  2: 1   # damaged -> change
+  3: 1   # destroyed -> change
+
+# Model
+model:
+  architecture: Unet
+  encoder_name: resnet34
+  encoder_weights: imagenet
+  in_channels: 4
+  classes: 1
+  library: segmentation_models_pytorch
+
+# Loss
+loss:
+  dice_weight: 0.5
+  bce_weight: 0.5
+  dice_mode: binary
+  from_logits: true
+
+# Optimizer
+optimizer:
+  type: AdamW
+  lr: 1.0e-4
+  weight_decay: 1.0e-4
+
+# Scheduler
+scheduler:
+  type: CosineAnnealingLR
+  T_max: 20
+
+# Training
+epochs: 20
+batch_size: 8
+val_batch_size: 1
+num_workers: 4
+pin_memory: true
+mixed_precision: true       # FP16 via torch.amp
+random_seed: 42
+
+# Augmentations (training only; val/test use no augmentation)
+augmentations:
+  random_crop: 512
+  horizontal_flip_p: 0.5
+  vertical_flip_p: 0.5
+  random_rotate_90_p: 0.5
+  # NOTE: no color jitter / brightness / contrast — would corrupt SAR.
+
+# Normalization
+normalization:
+  type: scale_to_unit
+  divisor: 255.0
+  imagenet_mean_std: false   # SAR statistics differ from RGB; unified norm avoided.
+
+# Evaluation
+evaluation:
+  threshold: 0.5
+  metric_class: 1            # change class only
